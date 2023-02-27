@@ -1,0 +1,10 @@
+linux:
+pyinstaller --clean --onedir --workpath "/mnt/D/python_build/temps" --distpath "/mnt/D/python_build/apps" --add-data "configurations.json":"." --add-binary "sources/photosort_sqlite.db":"sources" -w --name "photosort"  main.py
+
+
+
+
+windows
+pyinstaller --clean --onedir --workpath "D:\python_build\temps" --distpath "D:\python_build\apps" --add-data "configurations.json";"." --add-binary "sources\photosort_sqlite.db";"sources" -w --name "photosort"  main.py
+
+

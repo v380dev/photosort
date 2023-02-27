@@ -1,0 +1,7 @@
+{
+  "db": {
+    "name": "./sources/photosort_sqlite.db"
+  },
+  "session": {"name_default": "default name"},
+  "version": "0.0.2"
+}
