@@ -3,5 +3,5 @@
     "name": "./sources/photosort_sqlite.db"
   },
   "session": {"name_default": "default name"},
-  "version": "0.0.2"
+  "version": "1.0.0"
 }

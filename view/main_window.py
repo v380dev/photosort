@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from PySide6.QtGui import QAction, QPixmap, QResizeEvent, QIcon
-from PySide6.QtCore import QMetaObject, QRect, QSize, Qt, QEvent
+from PySide6.QtGui import QAction, QPixmap, QResizeEvent, QIcon, QFont, QShortcut
+from PySide6.QtCore import QMetaObject, QRect, QSize, Qt, QEvent, Signal
 from PySide6.QtWidgets import (QHBoxLayout, QMainWindow,
                                QMenu, QMenuBar, QPushButton, QSizePolicy,
                                QSpacerItem, QStatusBar, QWidget, QLabel,
-                               QVBoxLayout, QProgressBar)
+                               QVBoxLayout, QProgressBar, QScrollArea, QSplitter)
 
 from model.service import Service
 from model.exceptions_photosort import PhotoExistsInTarget
@@ -16,6 +16,9 @@ from view.menu_rename_session import RenameSession
 from view.menu_about import About
 from view.window_conflict import WindowConflict, AnswerFileConflict
 
+StyleCSS = str
+STYLE_SCC_SELECTED_TARGET = "background-color : #A9A9A9; color : #F5F5F5;"
+STYLE_SCC_UNSELECTED_TARGET = "background-color : None"
 
 class MainWindow(QMainWindow):
     def __init__(self,
@@ -58,7 +61,8 @@ class MainWindow(QMainWindow):
         self.v_layout_1.setContentsMargins(0, 0, 0, 0)
 
         self._img = QPixmap()
-        self._photo_label = QLabel(self.centralwidget)
+        # self._photo_label = QLabel(self.centralwidget)
+        self._photo_label = QLabel()
         w = self.size().width()
         h = self.size().height()
         self._photo_label.setGeometry(QRect(0, 0, w, h))
@@ -66,8 +70,9 @@ class MainWindow(QMainWindow):
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self._photo_label.sizePolicy().hasHeightForWidth())
-        self._photo_label.setMinimumSize(QSize(200, 100))
+        # sizePolicy.setHeightForWidth(self._photo_label.sizePolicy().hasHeightForWidth())
+        # self._photo_label.setMinimumSize(QSize(200, 100))
+        self._photo_label.setMinimumSize(QSize(100, 50))
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setValue(0)
@@ -75,10 +80,11 @@ class MainWindow(QMainWindow):
         self.progress_bar.setTextVisible(False)
 
         self.v_layout_1.addWidget(self.progress_bar)
-        self.v_layout_1.addWidget(self._photo_label)
+        # self.v_layout_1.addWidget(self._photo_label)
         self.h_layout_1_1 = QHBoxLayout()
-        self.h_layout_1_1.setObjectName("horizontal_layout_1_2")
-        self.h_layout_1_1.setContentsMargins(0,1,0,3)
+        self.h_layout_1_1.setObjectName("horizontal_layout_1_1")
+        # self.h_layout_1_1.setContentsMargins(0,1,0,3)
+
 
         self.widget = QWidget(self.centralwidget)
         self.widget.setObjectName("widget")
@@ -89,22 +95,66 @@ class MainWindow(QMainWindow):
         icon_back = QIcon(QIcon.fromTheme("go-previous"))
         self.btn_back.setIcon(icon_back)
         self.btn_back.setShortcut("Left")
-        self.btn_back.setMaximumWidth(20)
-        self.btn_back.setMinimumHeight(50)
+        shortcut = QShortcut(Qt.SHIFT | Qt.Key_Tab, self.btn_back)
+        shortcut.activated.connect(self.btn_back.click)
+        # self.btn_back.setMaximumWidth(20)
+        # self.btn_back.setMinimumWidth(80)
+        self.btn_back.setFixedWidth(80)
+        # self.btn_back.setMinimumHeight(50)
+        self.btn_back.setMinimumHeight(20)
         self.btn_back.clicked.connect(self._click_button_back)
 
-        self.horizontal_spacer_back = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        splitter = QSplitter()
+        self.v_layout_1.addWidget(splitter)
+        splitter.splitterMoved.connect(self.update_main_window)
+        button_widget = QWidget()
 
         self.h_layout_1_1.addWidget(self.btn_back)
-        self.h_layout_1_1.addItem(self.horizontal_spacer_back)
-        self.h_layout_1_1_1 = QHBoxLayout()
-        self.h_layout_1_1_1.setObjectName("horizontal_layout_1_1_1")
-        self.h_layout_1_1_1.setContentsMargins(0, 0, 0, 0)
-        self.h_layout_1_1_1.setSpacing(0)
+        self.right = QScrollArea()
 
-        self.h_layout_1_1.addLayout(self.h_layout_1_1_1)
-        self.horizontal_spacer_forward = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        self.h_layout_1_1.addItem(self.horizontal_spacer_forward)
+        self.v_layout_target_buttons = QVBoxLayout(button_widget)
+        self.v_layout_target_buttons.setObjectName("v_layout_target_buttons")
+        self.v_layout_target_buttons.setContentsMargins(0, 0, 0, 0)
+        self.v_layout_target_buttons.setSpacing(0)
+
+        left_widget = QWidget()
+        # left_widget.setStyleSheet("background-color: grey;")
+        # left_layout = QVBoxLayout()
+        left_layout = QVBoxLayout(left_widget)
+        # left_layout.addWidget(self._photo_label)
+        left_layout.addWidget(self._photo_label)
+        # left_widget.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(1)
+        left_layout.addStretch(0)
+        self._photo_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # self._photo_label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Expanding)
+        left_widget.setLayout(left_layout)
+        left_layout.setAlignment(Qt.Alignment.AlignTop)
+
+
+        self.right.setWidget(button_widget)
+        self.right.setWidgetResizable(True)
+        # splitter.addWidget(self._photo_label)
+        splitter.addWidget(left_widget)
+        self._photo_label.setAlignment(Qt.Alignment.AlignTop)
+        splitter.addWidget(self.right)
+        splitter.setSizes([400, splitter.width() - 400])
+        splitter.widget(0).setMinimumWidth(50)
+        splitter.widget(1).setMinimumWidth(50)
+        splitter.setCollapsible(0, False)
+        splitter.setCollapsible(1, False)
+
+        # self.h_layout_1_1.addLayout(self.h_layout_1_1_1)
+        # self.horizontal_spacer_forward = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        # self.h_layout_1_1.addItem(self.horizontal_spacer_forward)
+
+        self.label_name_current_photo = QLabel()
+        # self.label_name_current_photo.adjustSize()
+        self.h_layout_1_1.addStretch()
+        self.h_layout_1_1.addWidget(self.label_name_current_photo)
+        self.h_layout_1_1.addStretch()
+
 
         self.btn_forward = QPushButton(self.widget)
         self.btn_forward.setObjectName("btn_forward")
@@ -112,14 +162,23 @@ class MainWindow(QMainWindow):
         icon_forward = QIcon(QIcon.fromTheme("go-next"))
         self.btn_forward.setIcon(icon_forward)
         self.btn_forward.setShortcut("Right")
-        self.btn_forward.setMaximumWidth(20)
-        self.btn_forward.setMinimumHeight(50)
+        self.btn_forward.setShortcut(Qt.Key_Tab)
+        # self.btn_forward.setMaximumWidth(20)
+        # self.btn_forward.setMinimumWidth(80)
+        # self.btn_forward.setMaximumWidth(80)
+        self.btn_forward.setFixedWidth(80)
+        # self.btn_forward.setMinimumHeight(50)
+        self.btn_forward.setMinimumHeight(20)
         self.btn_forward.clicked.connect(self._click_button_forward)
         # add second shortcut to step right ...
         self.act_step_right_use_space = QAction(self)
         self.act_step_right_use_space.setShortcut("Space")
         self.act_step_right_use_space.triggered.connect(self._click_button_forward)
         self.addAction(self.act_step_right_use_space)
+
+        self.btn_forward.setShortcut(Qt.Key_Tab)
+        # shortcut_tab = QShortcut(QKeySequence(Qt.Key_Tab), button_tab)
+        # shortcut_tab.activated.connect(button_tab.click)
 
         self.h_layout_1_1.addWidget(self.btn_forward)
         self.v_layout_1.addLayout(self.h_layout_1_1)
@@ -253,9 +312,9 @@ class MainWindow(QMainWindow):
 
         self.setMenuBar(self.menu_bar)
 
-        self.statusbar = QStatusBar(self)
-        self.statusbar.setObjectName("statusbar")
-        self.setStatusBar(self.statusbar)
+        # self.statusbar = QStatusBar(self)
+        # self.statusbar.setObjectName("statusbar")
+        # self.setStatusBar(self.statusbar)
         QMetaObject.connectSlotsByName(self)
 
 
@@ -373,9 +432,10 @@ class MainWindow(QMainWindow):
         self._update_buttons_target()
         self.current_name_photo = self.service.get_current_link_photo()
         if self.current_name_photo:
-            self.statusbar.showMessage(self.current_name_photo)
+            self.label_name_current_photo.setText(self.current_name_photo)
+            self.label_name_current_photo.adjustSize()
         else:
-            self.statusbar.showMessage("")
+            self.label_name_current_photo.setText("")
 
 
     def resizeEvent(self, e: QResizeEvent):
@@ -385,9 +445,10 @@ class MainWindow(QMainWindow):
     def set_photo(self, photo_name):
         if photo_name:
             self._img.load(photo_name)
-            self._img = self._get_resized_photo(self._img, self._photo_label)
+            # self._img = self._get_resized_photo(self._img, self._photo_label)
+            self._img = self._get_resized_photo(self._img, self._photo_label.parent())
             self._photo_label.setPixmap(self._img)
-            self._photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # self._photo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         else:
             self._photo_label.clear()
 
@@ -419,57 +480,80 @@ class MainWindow(QMainWindow):
         self.current_targets_id_on_photo = self.service.get_targets_on_current_photo()
         # self.update_main_window()
         self.set_photo(self.current_name_photo)
-        self._update_target_btn_style(self.current_targets_id_on_photo)
-        self.statusbar.showMessage(self.current_name_photo)
+        self._update_target_widget_style(self.current_targets_id_on_photo)
+        self.label_name_current_photo.setText(self.current_name_photo)
+        self.label_name_current_photo.adjustSize()
+        # self.statusbar.showMessage(self.current_name_photo)
 
-    def _update_target_btn_style(self, targets_id: list):
-        self._remove_selection_targets_btn()
-        self._set_selection_target_btn(targets_id)
+    def _update_target_widget_style(self, targets_id: list):
+        self._remove_selection_targets_widget()
+        self._set_selection_target_widget(targets_id)
 
-    def _remove_selection_targets_btn(self):
+    # StyleCSS = str
+    def set_style_to_target_widget(self, target: QWidget, style: StyleCSS) -> None:
+        # target.setFont(QFont("Arial", 10))
+        target.setStyleSheet(style)
+
+    def _remove_selection_targets_widget(self):
         for dict in self.list_of_targets_dict:
             btn = self.dict_target_buttons[(dict['id'])]
-            btn.setStyleSheet(f"background-color : None")
+            self.set_style_to_target_widget(btn, STYLE_SCC_UNSELECTED_TARGET)
 
-    def _set_selection_target_btn(self, targets_id):
+    def _set_selection_target_widget(self, targets_id):
         for name_btn in targets_id:
             btn = self.dict_target_buttons[name_btn]
-            btn.setStyleSheet(f"background-color : yellow")
+            self.set_style_to_target_widget(btn, STYLE_SCC_SELECTED_TARGET)
 
-    def press_target_btn(self):
+    def press_target_widget(self):
         btn_target = self.sender()
         name_btn_int = int(btn_target.objectName())
 
         if name_btn_int in self.current_targets_id_on_photo:
-            btn_target.setStyleSheet("background-color : None")
+            self.set_style_to_target_widget(btn_target, STYLE_SCC_UNSELECTED_TARGET)
             self.current_targets_id_on_photo.remove(name_btn_int)
             self.service.deselect_target(name_btn_int)
         else:
-            btn_target.setStyleSheet("background-color : yellow")
+            self.set_style_to_target_widget(btn_target, STYLE_SCC_SELECTED_TARGET)
             self.current_targets_id_on_photo.append(name_btn_int)
             self.service.select_target(name_btn_int)
 
-    def generate_target_button(self, dict_id_name: dict) -> QPushButton:
+
+    def generate_target_widget(self, dict_id_name: dict) -> QPushButton:
         id, name = dict_id_name.values()
-        btn_target = QPushButton(self.widget)
-        btn_target.setObjectName(str(id))
-        btn_target.setMinimumSize(QSize(10, 0))
-        btn_target.setText(name)
-        btn_target.setMinimumHeight(50)
-        btn_target.clicked.connect(self.press_target_btn)
-        self.dict_target_buttons[id] = btn_target
-        return btn_target
+        # target = QPushButton(self.widget)
+        target = ClickableLabel (self.widget)
+        target.setObjectName(str(id))
+        target.setMinimumSize(QSize(10, 24))
+        target.setText(name)
+        self.set_style_to_target_widget(target, STYLE_SCC_UNSELECTED_TARGET)
+        target.clicked.connect(self.press_target_widget)
+        self.dict_target_buttons[id] = target
+        return target
 
     def _update_buttons_target(self):
         if len(self.dict_target_buttons):
-            for btn_trg in self.dict_target_buttons.values():
-                self.h_layout_1_1_1.removeWidget(btn_trg)
-                btn_trg.deleteLater()
-                self.dict_target_buttons = {}
-        self.list_of_targets_dict = self.service.get_short_targets_dict_on_session()
+            while self.v_layout_target_buttons.count() > 0:
+                item = self.v_layout_target_buttons.takeAt(0)
+                widget_item = item.widget()
+                if widget_item is not None:
+                    widget_item.deleteLater()
+        # self.list_of_targets_dict = self.service.get_short_targets_dict_on_session()
+        self.list_of_targets_dict = self.service.get_full_targets_dict_on_session()
         for dict in self.list_of_targets_dict:
-            self.h_layout_1_1_1.addWidget(self.generate_target_button(dict))
-        self._set_selection_target_btn(self.current_targets_id_on_photo)
+            self.v_layout_target_buttons.addWidget(self.generate_target_widget(dict))
+        self.v_layout_target_buttons.addStretch()
+        self._set_selection_target_widget(self.current_targets_id_on_photo)
 
     def update_pull_photo(self):
         self.service.get_sources_by_session_id()
+
+
+class ClickableLabel(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()  # відправляємо сигнал, що елемент був натиснутий
+
+    # визначаємо новий сигнал для натискань на QLabel
+    clicked = Signal()
